@@ -1,5 +1,5 @@
 from __future__ import print_function
-import re
+import re,os
 bare = re.compile(r'.*pam\_unix\(sshd\:auth\)\: authentication failure;.*');
 rhre = re.compile(r'.*rhost=(.*) ');
 hostdict = {};
@@ -38,8 +38,6 @@ def stats():
 
 def updatedb():
     db = [];
-    import os
-
     if os.path.exists(dbfile):
         ins = open(dbfile,'r');
         try:
@@ -89,7 +87,7 @@ def runiptscrpts():
     "--log-prefix \"IPTables-Dropped: \" --log-level 4",
     "iptables -A LOGGING -j DROP"];
     db = [];
-    
+
     if os.path.exists(dbfile):
         ins = open(dbfile,'r');
         try:
