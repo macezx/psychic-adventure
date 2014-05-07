@@ -3,6 +3,7 @@ import re
 bare = re.compile(r'.*pam\_unix\(sshd\:auth\)\: authentication failure;.*');
 rhre = re.compile(r'.*rhost=(.*) ');
 hostdict = {};
+dbfile = "db"
 
 def procline(line):
     m = bare.match(line);
@@ -36,7 +37,6 @@ def stats():
         os.close();
 
 def updatedb():
-    dbfile = "db"
     db = [];
     import os
 
@@ -58,7 +58,7 @@ def updatedb():
             #index = bisect(db, host);
             #if not( index != len(db) and db[index] == host):
             if host not in db:
-                db.insert(index, host);
+                bisect(db, host);
     else:
         db = hosts;
 
@@ -82,6 +82,43 @@ def updatedb():
     del hosts;
     del db;
 
+def runiptscrpts():
+    iprestart = "service iptables restart";
+    iptemp = "iptables -A INPUT -s {0} -j LOGGING &> /dev/NULL; done";
+    ipend = ["iptables -A LOGGING -m limit --limit 2/min -j LOG " +
+    "--log-prefix \"IPTables-Dropped: \" --log-level 4",
+    "iptables -A LOGGING -j DROP"];
+    db = [];
+    
+    if os.path.exists(dbfile):
+        ins = open(dbfile,'r');
+        try:
+            for line in ins:
+                line = line.strip()
+                db.append(line);
+        finally:
+            ins.close();
+
+        if len(db) > 0 :
+            db.sort();
+            import subprocess,shlex
+            retcode = subprocess.call(shlex.split(iprestart));
+            if retcode == 0:
+                for host in db:
+                    cmd = iptemp.format(host)
+                    retcode = subprocess.call(shlex.split(cmd));
+                    if retcode != 0:
+                        print("adding rule failed");
+                        break;
+                for str in ipend:
+                    retcode = subprocess.call(shlex.split(str));
+                    if retcode != 0:
+                        print("ending failed");
+                        break;
+            else:
+                print("iprestart failed");
+    del db;
+
 import sys
 if(__name__ == "__main__") :
     if(len(sys.argv) < 2):
@@ -99,3 +136,5 @@ if(__name__ == "__main__") :
 
         hostdict.clear();
         del hostdict;
+
+        runiptscrpts();
