@@ -51,12 +51,10 @@ def updatedb():
     hosts = hostdict.keys();
     hosts.sort();
     if len(db) > 0:
-        from bisect import bisect
+        import bisect
         for host in hosts:
-            #index = bisect(db, host);
-            #if not( index != len(db) and db[index] == host):
             if host not in db:
-                bisect(db, host);
+                bisect.insort(db,host);
     else:
         db = hosts;
 
@@ -82,7 +80,8 @@ def updatedb():
 
 def runiptscrpts():
     iprestart = "service iptables restart";
-    iptemp = "iptables -A INPUT -s {0} -j LOGGING &> /dev/NULL; done";
+    iplog = "iptables -N LOGGING";
+    iptemp = "iptables -A INPUT -s {0} -j LOGGING &> /dev/NULL";
     ipend = ["iptables -A LOGGING -m limit --limit 2/min -j LOG " +
     "--log-prefix \"IPTables-Dropped: \" --log-level 4",
     "iptables -A LOGGING -j DROP"];
@@ -101,10 +100,11 @@ def runiptscrpts():
             db.sort();
             import subprocess,shlex
             retcode = subprocess.call(shlex.split(iprestart));
-            if retcode == 0:
+            retcode = subprocess.call(shlex.split(iplog));
+            if retcode != 127:
                 for host in db:
-                    cmd = iptemp.format(host)
-                    retcode = subprocess.call(shlex.split(cmd));
+                    cmd = iptemp.format(host);
+                    retcode = subprocess.call(cmd, shell=True);
                     if retcode != 0:
                         print("adding rule failed");
                         break;
