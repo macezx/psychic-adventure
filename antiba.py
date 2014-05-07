@@ -9,7 +9,7 @@ def procline(line):
     if(m is not None):
         m = rhre.match(line);
         if(m is not None):
-            host = m.group(1);
+            host = m.group(1).strip();
             if(hostdict.has_key(host)):
                 hostdict[host] += 1;
             else:
@@ -44,6 +44,7 @@ def updatedb():
         ins = open(dbfile,'r');
         try:
             for line in ins:
+                line = line.strip()
                 db.append(line);
         finally:
             ins.close();
@@ -54,8 +55,9 @@ def updatedb():
     if len(db) > 0:
         from bisect import bisect
         for host in hosts:
-            index = bisect(db, host);
-            if not( index != len(db) and db[index] == host):
+            #index = bisect(db, host);
+            #if not( index != len(db) and db[index] == host):
+            if host not in db:
                 db.insert(index, host);
     else:
         db = hosts;
